@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace LowLebelIOTest
 {
     [TestClass]
-    public class UnitTest1
+    public class LowLevelIOTest
     {
         [TestMethod]
         public void TestMethod1()
