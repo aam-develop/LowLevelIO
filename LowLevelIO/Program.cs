@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LowLevelIO
+namespace VSET2
 {
     class Program
     {
