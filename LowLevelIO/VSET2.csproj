@@ -7,8 +7,8 @@
     <ProjectGuid>{16BD14DB-81F8-490E-B763-CAC8B70AA538}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LowLevelIO</RootNamespace>
-    <AssemblyName>LowLevelIO</AssemblyName>
+    <RootNamespace>VSET2</RootNamespace>
+    <AssemblyName>VSET2</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

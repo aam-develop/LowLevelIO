@@ -1,36 +1,79 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LowLevelIO
+namespace VSET2
 {
+
+
     /// <summary>
     /// 低水準インタフェースルーチン
     /// </summary>
-    class LowLevelIO
+    public class LowLevelIO
     {
+        /// <summary>
+        /// ファイルを読み込み専用にオープン
+        /// </summary>
+        public static readonly long O_RDONLY = 0x0001;
+        /// <summary>
+        /// ファイルを書き出し専用にオープン
+        /// </summary>
+        public static readonly long O_WRONLY = 0x0002;
+        /// <summary>
+        /// ファイルを読み込み、書き出し両用にオープン
+        /// </summary>
+        public static readonly long O_RDWR = 0x0004;
+        /// <summary>
+        /// ファイル名で示すファイルが存在しない場合にファイルを新規に作成
+        /// </summary>
+        public static readonly long O_CREAT = 0x0008;
+        /// <summary>
+        /// ファイル名で示すファイルが存在する場合にファイルの内容を捨て、ファイルのサイズを0に更新
+        /// </summary>
+        public static readonly long O_TRUNC = 0x0010;
+        /// <summary>
+        /// 次に読み込み/書き出しを行うファイル内の位置をファイルの最後に設定
+        /// </summary>
+        public static readonly long O_APPEND = 0x0020;
+
+        private static readonly int MAX_FILENO = 128;
+
+        private class FILE
+        {
+            public int Id { get; set; }
+            public FileStream fs { get; set; }
+        }
+        FileStream[] list = new FileStream[MAX_FILENO];
+
         /// <summary>
         /// 入出力するファイルのパス
         /// </summary>
-        String BaseDir;
+        public String BaseDir;
 
         /// <summary>
         /// コンストラクタ
         /// <para>デフォルトパス</para>
         /// </summary>
-        public LowLevelIO() : this(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "Vset2\\LUA")
+        public LowLevelIO() : this(System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\Vset2\\LUA")
         {
         }
 
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        /// <param name="dir"></param>
+        /// <param name="dir">デフォルトパス</param>
         public LowLevelIO(String dir)
         {
             this.BaseDir = dir;
+
+            // 読み書きディレクトリを作成
+            if (!Directory.Exists(this.BaseDir))
+                Directory.CreateDirectory(this.BaseDir);
+
         }
 
         /// <summary>
@@ -38,14 +81,62 @@ namespace LowLevelIO
         /// </summary>
         /// <param name="name">ファイルのファイル名を指す文字</param>
         /// <param name="mode">ファイルをオープンするときの処理の指定</param>
-        /// <param name="flg"> ファイルをオープンするときの処理の指定</param>
+        /// <param name="flg"> アクセス許可モード</param>
         /// <returns>
-        ///   <para>正常： 正常オープンしたファイルのファイル番号</para>
+        ///   <para>正常： オープンしたファイルのファイル番号</para>
         ///   <para>異常： -1</para>
         //// </returns>
         public long open(string name, long mode, long flg)
         {
-            return -1;
+            FileAccess access;
+            FileMode filemode;
+
+            if ((mode & O_RDWR) != 0)
+            {
+                access = FileAccess.ReadWrite;
+            }
+            else if ((mode & O_RDONLY) != 0)
+            {
+                access = FileAccess.Read;
+            }
+            else if ((mode & O_WRONLY) != 0)
+            {
+                access = FileAccess.Write;
+            }
+            else
+                return -1;
+
+            filemode = FileMode.OpenOrCreate;
+            if ((mode & O_APPEND) != 0)
+            {
+                filemode = FileMode.Append;
+            }
+            if ((mode & O_TRUNC) != 0)
+            {
+                filemode = FileMode.Truncate;
+            }
+
+
+            // 空いているファイル番号を検索
+            int i;
+            for (i = 0; i < MAX_FILENO; i++)
+                if (list[i] == null)
+                {
+                    try
+                    {
+                        list[i] = new FileStream(BaseDir + "\\" + name, filemode, access);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.Write(e.ToString());
+                        return -1;
+                    }
+                    break;
+                }
+            if (i == MAX_FILENO)
+                return -1;
+
+            return i;
         }
 
         /// <summary>
@@ -58,7 +149,15 @@ namespace LowLevelIO
         //// </returns>
         public long close(long fileno)
         {
-            return -1;
+            if (0 > fileno || fileno >= MAX_FILENO)
+                return -1;
+            if (list[fileno] == null)
+                return -1;
+
+            list[fileno].Dispose();
+            list[fileno] = null;
+
+            return 0;
         }
 
         /// <summary>
@@ -73,8 +172,16 @@ namespace LowLevelIO
         /// </returns>
         public long read(long fileno, out byte[] buf, long count)
         {
-            buf = new byte[0];
-            return -1;
+            buf = new Byte[count];
+
+            if (0 > fileno || fileno >= MAX_FILENO)
+                return -1;
+            if (list[fileno] == null)
+                return -1;
+
+            int readcount = list[fileno].Read(buf, 0, (int)count);
+
+            return readcount;
         }
 
         /// <summary>
@@ -87,9 +194,15 @@ namespace LowLevelIO
         ///   <para>正常： 実際に書き出されたバイト数</para>
         ///   <para>異常： -1</para>
         /// </returns>
-        public long write(long fileno, byte[] buf, long count) 
+        public long write(long fileno, byte[] buf, long count)
         {
-            return -1;
+            if (0 > fileno || fileno >= MAX_FILENO)
+                return -1;
+            if (list[fileno] == null)
+                return -1;
+
+            list[fileno].Write(buf, 0, (int)count);
+            return count;
         }
 
         /// <summary>
@@ -104,7 +217,30 @@ namespace LowLevelIO
         /// </returns>
         public long lseek(long fileno, long offset, long origin)
         {
-            return -1;
+            if (0 > fileno || fileno >= MAX_FILENO)
+                return -1;
+            if (list[fileno] == null)
+                return -1;
+
+            SeekOrigin seekorgine;
+            switch (origin)
+            {
+                case 0:
+                    seekorgine = SeekOrigin.Begin;
+                    break;
+                case 1:
+                    seekorgine = SeekOrigin.Current;
+                    break;
+                case 2:
+                    seekorgine = SeekOrigin.End;
+                    break;
+                default:
+                    return -1;
+            }
+
+
+            long ret = list[fileno].Seek(offset, seekorgine);
+            return ret;
         }
 
 

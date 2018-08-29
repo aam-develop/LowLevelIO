@@ -53,6 +53,12 @@
     <Compile Include="LowLevelIOTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LowLevelIO\VSET2.csproj">
+      <Project>{16bd14db-81f8-490e-b763-cac8b70aa538}</Project>
+      <Name>VSET2</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
